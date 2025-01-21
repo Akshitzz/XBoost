@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "vercel-build":"npm run prepare && next build",
+    "vercel-build": "npm run prepare && next build",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -15,7 +15,7 @@
     "clsx": "^2.1.1",
     "lucide-react": "^0.473.0",
     "motion": "^11.18.1",
-    "next": "15.1.5",
+    "next": "^15.1.5",
     "next-themes": "^0.4.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
