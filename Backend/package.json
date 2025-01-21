@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "dotenv": "^16.4.7",
+    "install": "^0.13.0",
+    "node": "^22.13.0",
+    "node-schedule": "^2.1.1",
+    "npm": "^11.0.0",
+    "twitter-api-v2": "^1.19.0"
+  }
+}
