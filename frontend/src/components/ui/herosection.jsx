@@ -6,9 +6,10 @@ import { useTheme } from "next-themes";
 import { AuroraText } from "./aurora-text"
 
 import DotPattern from "./dotpattern";
-
+import Link from "next/link";
 
 export function Herosection (){
+        
       const theme = useTheme()
       const shadowColor = theme.resolvedTheme === "dark" ? "white" :"black";    
     return (
@@ -38,10 +39,16 @@ export function Herosection (){
         </div>
           <p className="text-xl mb-8 max-w-2xl mx-auto text-gray-500 font-light">Automate your X presence and skyrocket your product&apos;s visibility.  XBoost empowers startups and businesses to effortlessly expand their audience and achieve unstoppable growth</p>
           <div className="flex justify-center space-x-4">
-            <Button size="lg" className="bg-blue-500 hover:bg-blue-600">
-              Start Free Trial
-              <ArrowRight className="ml-2 h-5 w-5" />
+          
+            <Link href={"/getstarted"}>
+            <Button size="lg" className="bg-blue-500 hover:bg-blue-600 "
+            
+            >
+            Start Free Trial
+            <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
+            </Link>
+            
             <Button size="lg" variant="outline">Watch Demo</Button>
           </div>
         </div>
