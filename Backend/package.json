@@ -1,7 +1,10 @@
 {
+  "type":"module",
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
+    "axios": "^1.7.9",
     "dotenv": "^16.4.7",
+    "express": "^4.21.2",
     "install": "^0.13.0",
     "node": "^22.13.0",
     "node-schedule": "^2.1.1",
