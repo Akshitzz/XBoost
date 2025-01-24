@@ -5,7 +5,7 @@ import { TwitterApi } from "twitter-api-v2";
 import axios from "axios";
 import cron from "node-cron";
 
-config();
+dotenv.config();
 
 const app = express();
 app.use(express.json());
