@@ -8,7 +8,14 @@ import { AuroraText } from "@/components/ui/aurora-text";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Sparkles, Copy, Check, Loader2 } from "lucide-react";
+import { Sparkles, Copy, Check, Loader2, Info, Twitter } from "lucide-react";
+
+// Reusable Label Component
+const Label = ({ children }) => (
+  <label className="text-xs font-medium uppercase tracking-wider text-zinc-400 mb-2 block">
+    {children}
+  </label>
+);
 
 export default function GetStartedPage() {
   const router = useRouter();
@@ -18,6 +25,16 @@ export default function GetStartedPage() {
   const [copied, setCopied] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
+
+  const [formData, setFormData] = useState({
+    username: "",
+    productName: "",
+    productDetails: "",
+    productFeatures: "",
+    productProblem: "",
+    productMarketing: "",
+    tweetCount: 0,
+  });
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -59,16 +76,6 @@ export default function GetStartedPage() {
       toast.error("Connection error");
     }
   };
-
-  const [formData, setFormData] = useState({
-    username: "",
-    productName: "",
-    productDetails: "",
-    productFeatures: "",
-    productProblem: "",
-    productMarketing: "",
-    tweetCount: 0,
-  });
 
   // Handle input changes
   const handleChange = (e) => {
@@ -127,104 +134,99 @@ export default function GetStartedPage() {
   }
 
   return (
-    <AuroraBackground className="flex items-center justify-center min-h-screen p-4">
+    <AuroraBackground className="flex items-center justify-center min-h-screen p-4 pt-24 text-zinc-100">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className="w-full max-w-4xl relative z-10"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="w-full max-w-5xl relative z-10"
       >
         <div className="flex flex-col lg:flex-row gap-8 items-start">
 
           {/* Form Side */}
-          <ShineBorder
-            className="flex-1 w-full bg-white/80 dark:bg-black/80 backdrop-blur-md border border-white/20 shadow-2xl rounded-3xl overflow-hidden"
-            color={["#A07CFE", "#FE8FB5", "#FFBE7B"]}
-          >
-            <div className="p-8 w-full">
-              <div className="mb-8 text-center lg:text-left">
-                <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
-                  <AuroraText>XBoost Onboarding</AuroraText>
-                </h1>
-                <p className="text-muted-foreground mt-2">
-                  Tell us about your product to generate viral tweets.
-                </p>
-              </div>
+          <div className="flex-1 w-full space-y-6">
+            <div className="text-center lg:text-left">
+              <h1 className="text-4xl font-bold tracking-tight mb-2">
+                <AuroraText>Create Campaign</AuroraText>
+              </h1>
+              <p className="text-zinc-400">
+                Configure your autonomous agent to generate viral content.
+              </p>
+            </div>
+
+            <div className="w-full bg-zinc-900/70 backdrop-blur-md border border-white/10 shadow-2xl rounded-3xl p-8 relative overflow-hidden">
+              {/* Decorative sheen */}
+              <div className="absolute top-0 right-0 p-32 bg-blue-500/10 blur-[100px] rounded-full pointer-events-none" />
 
               {!isConnected ? (
-                <div className="flex flex-col items-center justify-center py-10 space-y-4">
-                  <p className="text-center text-gray-600 dark:text-gray-300 mb-4">
-                    To start generating and scheduling tweets, please connect your X (Twitter) account.
-                  </p>
+                <div className="flex flex-col items-center justify-center py-16 space-y-6 text-center">
+                  <div className="p-4 bg-blue-500/10 rounded-full mb-2">
+                    <Twitter className="w-8 h-8 text-blue-400" />
+                  </div>
+                  <div className="space-y-2 max-w-md">
+                    <h3 className="text-xl font-bold text-white">Connect to X</h3>
+                    <p className="text-zinc-400 text-sm">
+                      To start generating and scheduling tweets, we need permission to post to your account.
+                    </p>
+                  </div>
                   <Button
                     onClick={handleConnectX}
-                    className="bg-black text-white hover:bg-gray-800 px-8 py-6 text-lg rounded-full flex items-center gap-2"
+                    className="bg-white text-black hover:bg-zinc-200 px-8 py-6 text-lg rounded-full font-semibold transition-all hover:scale-105"
                   >
-                    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6 fill-current"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg>
                     Connect X Account
                   </Button>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-700 dark:text-gray-300">
-                        X Username
-                      </label>
+                      <Label>X Username</Label>
                       <Input
                         name="username"
                         placeholder="@username"
                         onChange={handleChange}
-                        className="bg-white/50 dark:bg-black/50"
+                        className="bg-zinc-800/50 border-white/10 focus:border-blue-500/50 text-white placeholder:text-zinc-600 h-10 rounded-xl"
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-700 dark:text-gray-300">
-                        Product Name
-                      </label>
+                      <Label>Product Name</Label>
                       <Input
                         name="productName"
                         placeholder="e.g. SuperGadget"
                         onChange={handleChange}
-                        className="bg-white/50 dark:bg-black/50"
+                        className="bg-zinc-800/50 border-white/10 focus:border-blue-500/50 text-white placeholder:text-zinc-600 h-10 rounded-xl"
                         required
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-700 dark:text-gray-300">
-                      Product Details
-                    </label>
+                    <Label>Product Details</Label>
                     <textarea
                       name="productDetails"
-                      className="flex min-h-[80px] w-full rounded-md border border-input bg-white/50 dark:bg-black/50 px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex min-h-[100px] w-full rounded-xl border border-white/10 bg-zinc-800/50 px-4 py-3 text-sm text-white shadow-sm placeholder:text-zinc-600 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500/50 resize-none"
                       placeholder="Briefly describe what your product does..."
                       onChange={handleChange}
                       required
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-700 dark:text-gray-300">
-                        Key Features
-                      </label>
+                      <Label>Key Features</Label>
                       <textarea
                         name="productFeatures"
-                        className="flex min-h-[80px] w-full rounded-md border border-input bg-white/50 dark:bg-black/50 px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex min-h-[80px] w-full rounded-xl border border-white/10 bg-zinc-800/50 px-4 py-3 text-sm text-white shadow-sm placeholder:text-zinc-600 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500/50 resize-none"
                         placeholder="Fast, Secure, Scalable..."
                         onChange={handleChange}
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-700 dark:text-gray-300">
-                        Problem Solved
-                      </label>
+                      <Label>Problem Solved</Label>
                       <textarea
                         name="productProblem"
-                        className="flex min-h-[80px] w-full rounded-md border border-input bg-white/50 dark:bg-black/50 px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex min-h-[80px] w-full rounded-xl border border-white/10 bg-zinc-800/50 px-4 py-3 text-sm text-white shadow-sm placeholder:text-zinc-600 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500/50 resize-none"
                         placeholder="Inefficiency, High costs..."
                         onChange={handleChange}
                       />
@@ -232,23 +234,19 @@ export default function GetStartedPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-700 dark:text-gray-300">
-                      Marketing Focus
-                    </label>
+                    <Label>Marketing Focus</Label>
                     <Input
                       name="productMarketing"
                       placeholder="e.g. Speed, Innovation, Community"
                       onChange={handleChange}
-                      className="bg-white/50 dark:bg-black/50"
+                      className="bg-zinc-800/50 border-white/10 focus:border-blue-500/50 text-white placeholder:text-zinc-600 h-10 rounded-xl"
                     />
                   </div>
 
-                  <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-800">
+                  <div className="space-y-4 pt-6 mt-6 border-t border-white/10">
                     <div className="flex justify-between items-center">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Daily Tweet Schedule
-                      </label>
-                      <span className="text-sm font-bold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-3 py-1 rounded-full">
+                      <Label>Daily Tweet Schedule</Label>
+                      <span className="text-xs font-bold text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20">
                         {tweetcount} tweets/day
                       </span>
                     </div>
@@ -259,41 +257,41 @@ export default function GetStartedPage() {
                       step="1"
                       name="tweetCount"
                       value={formData.tweetCount}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-blue-600"
+                      className="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-400"
                       onChange={(e) => {
                         setTweetCount(e.target.value);
                         handleChange(e);
                       }}
                     />
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>0 (Manual only)</span>
-                      <span>10 (Spam danger)</span>
+                    <div className="flex justify-between text-[10px] text-zinc-500 font-medium uppercase tracking-wider">
+                      <span>Manual Only</span>
+                      <span>High Frequency</span>
                     </div>
                   </div>
 
                   <Button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-6 shadow-lg shadow-blue-500/20 transition-all duration-300 hover:scale-[1.02]"
+                    className="w-full bg-white text-black hover:bg-zinc-200 font-bold py-6 rounded-xl shadow-lg shadow-white/5 transition-all duration-300 hover:scale-[1.01] mt-4"
                     disabled={loading}
                   >
                     {loading ? (
                       <>
                         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Generating Magic...
+                        Processing...
                       </>
                     ) : (
                       <>
-                        <Sparkles className="mr-2 h-5 w-5" />
-                        Generate & Schedule Tweets
+                        <Sparkles className="mr-2 h-5 w-5 fill-current" />
+                        Generate & Schedule
                       </>
                     )}
                   </Button>
                 </form>
               )}
             </div>
-          </ShineBorder>
+          </div>
 
-          {/* Result Side - Animated Entrance */}
+          {/* Result Side - Sticky & Animated */}
           <AnimatePresence>
             {generatedTweet && (
               <motion.div
@@ -301,42 +299,54 @@ export default function GetStartedPage() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.5, type: "spring" }}
-                className="w-full lg:w-1/3 mt-8 lg:mt-0"
+                className="w-full lg:w-1/3 lg:sticky lg:top-24 mt-8 lg:mt-0"
               >
-                <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-2 border-blue-500/30 rounded-2xl shadow-2xl p-6 relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 p-4 opacity-50 text-6xl text-blue-500/10 pointer-events-none font-serif">
-                    "
-                  </div>
+                <ShineBorder
+                  className="w-full !bg-black/80 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden"
+                  color={["#10B981", "#3B82F6", "#6366F1"]}
+                >
+                  <div className="p-6 relative">
+                    <div className="flex items-center gap-2 mb-6 text-green-400">
+                      <div className="p-1 bg-green-500/20 rounded-full">
+                        <Check className="w-4 h-4" />
+                      </div>
+                      <span className="text-sm font-bold uppercase tracking-wider">Generated Successfully</span>
+                    </div>
 
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                    <span className="bg-green-100 text-green-700 p-1 rounded-md"><Check className="w-4 h-4" /></span>
-                    Success!
-                  </h3>
+                    <div className="bg-zinc-900/50 p-6 rounded-2xl border border-white/5 text-lg leading-relaxed text-zinc-300 font-medium relative">
+                      <span className="absolute -top-3 -left-2 text-4xl text-white/5 font-serif">"</span>
+                      {generatedTweet}
+                      <span className="absolute -bottom-6 -right-2 text-4xl text-white/5 font-serif">"</span>
+                    </div>
 
-                  <div className="bg-gray-50 dark:bg-black/50 p-4 rounded-xl border border-gray-200 dark:border-gray-800 text-lg leading-relaxed text-gray-800 dark:text-gray-200 font-medium italic">
-                    "{generatedTweet}"
-                  </div>
+                    <div className="mt-6">
+                      <Button
+                        onClick={copyToClipboard}
+                        variant="outline"
+                        className="w-full border-white/10 text-zinc-300 hover:bg-white/5 hover:text-white h-12 rounded-xl"
+                      >
+                        {copied ? (
+                          <>
+                            <Check className="mr-2 h-4 w-4" />
+                            Copied!
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Copy Text
+                          </>
+                        )}
+                      </Button>
+                    </div>
 
-                  <div className="mt-6">
-                    <Button
-                      onClick={copyToClipboard}
-                      variant="outline"
-                      className="w-full border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-900/30"
-                    >
-                      {copied ? (
-                        <>
-                          <Check className="mr-2 h-4 w-4" />
-                          Copied!
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="mr-2 h-4 w-4" />
-                          Copy to Clipboard
-                        </>
-                      )}
-                    </Button>
+                    <div className="mt-4 pt-4 border-t border-white/5 text-center">
+                      <p className="text-xs text-zinc-500">
+                        This tweet has been added to your schedule. <br />
+                        Check <span className="text-zinc-400 underline cursor-pointer" onClick={() => router.push('/dashboard')}>Dashboard</span> for details.
+                      </p>
+                    </div>
                   </div>
-                </div>
+                </ShineBorder>
               </motion.div>
             )}
           </AnimatePresence>
