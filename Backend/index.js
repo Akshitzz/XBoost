@@ -206,8 +206,14 @@ app.post("/api/generate-tweet", authMiddleware, async (req, res) => {
             tweet: generatedTweet
         });
 
-        // Schedule future tweets for this user
-        scheduleTweet(tweetData, user._id);
+        // Save schedule to database for persistence
+        user.tweetSchedule = {
+            enabled: true,
+            promptData: tweetData,
+            tweetsPerDay: parseInt(tweetData.tweetCount, 10),
+            lastPosted: new Date()
+        };
+        await user.save();
 
     } catch (error) {
         console.error("Error receiving tweet data:", error);
@@ -215,10 +221,97 @@ app.post("/api/generate-tweet", authMiddleware, async (req, res) => {
     }
 });
 
-// Function to generate tweet
-const generateTweet = async (data) => {
+// Endpoint to trigger scheduled tweets (Call this via external cron every 10-15 mins)
+app.get("/api/cron/run", async (req, res) => {
     try {
-        const prompt = `
+        console.log("Running Cron Job...");
+        const users = await User.find({ "tweetSchedule.enabled": true });
+
+        let tweetsPosted = 0;
+        let engagements = 0;
+
+        for (const user of users) {
+            const { tweetsPerDay, lastPosted, promptData } = user.tweetSchedule;
+
+            // Enforce daily limit (Max 6)
+            const effectiveTweetsPerDay = Math.min(tweetsPerDay, 6);
+            if (!effectiveTweetsPerDay || effectiveTweetsPerDay <= 0) continue;
+
+            const intervalMs = (24 * 60 * 60 * 1000) / effectiveTweetsPerDay;
+            const timeSinceLastPost = new Date() - new Date(lastPosted);
+
+            // 1. Check if it's time to Tweet
+            if (timeSinceLastPost >= intervalMs) {
+                console.log(`Posting scheduled tweet for ${user.username}...`);
+
+                // Pass 'true' for 'variety' to request different angles
+                const tweetText = await generateTweet(promptData, true);
+                if (tweetText) {
+                    const tweetId = await postTweet(tweetText, user._id);
+                    if (tweetId) {
+                        user.tweetSchedule.lastPosted = new Date();
+                        await user.save();
+                        tweetsPosted++;
+                    }
+                }
+            }
+
+            // 2. Community Engagement (Independent of tweeting schedule, e.g., runs every cron hit)
+            // We limit this to avoid rate limits (e.g., probability check or specific interval)
+            if (Math.random() < 0.3) { // 30% chance per cron run to attempt engagement
+                const didEngage = await engageWithCommunity(user);
+                if (didEngage) engagements++;
+            }
+        }
+
+        res.json({ status: "success", tweetsPosted, engagements });
+
+    } catch (error) {
+        console.error("Cron Job Error:", error);
+        res.status(500).json({ error: "Cron execution failed" });
+    }
+});
+
+// Community Engagement Function
+const engageWithCommunity = async (user) => {
+    try {
+        const client = await getUserClient(user);
+        const { productName, productMarketing } = user.tweetSchedule.promptData || {};
+
+        if (!productName) return false;
+
+        // Note: Twitter API v2 Free Tier has very limited Search capabilities. 
+        // We attempt to search for keywords. If 403 (Forbidden), we catch it.
+        const query = `#${productName.replace(/\s/g, '')} OR ${productMarketing ? productMarketing.split(' ')[0] : 'tech'}`;
+
+        console.log(`Attempting to search tweets for engagement: ${query}`);
+
+        // Search for recent tweets (might fail on Free Tier)
+        const searchResult = await client.v2.search(query, { max_results: 10 });
+
+        if (searchResult.data && searchResult.data.data.length > 0) {
+            // Find a tweet to like (that isn't our own)
+            const tweets = searchResult.data.data.filter(t => t.author_id !== user.twitterId);
+
+            if (tweets.length > 0) {
+                const randomTweet = tweets[Math.floor(Math.random() * tweets.length)];
+
+                await client.v2.like(user.twitterId, randomTweet.id);
+                console.log(`Liked tweet ${randomTweet.id} from autonomous agent`);
+                return true;
+            }
+        }
+    } catch (error) {
+        // Suppress errors for engagement as it's likely due to tier limits
+        console.log(`Engagement skipped/failed (likely API limits): ${error.message}`);
+    }
+    return false;
+};
+
+// Function to generate tweet
+const generateTweet = async (data, variety = false) => {
+    try {
+        let prompt = `
             Generate a tweet promoting a product:
             - Username: ${data.username}
             - Product Name: ${data.productName}
@@ -228,6 +321,18 @@ const generateTweet = async (data) => {
             - Marketing Focus: ${data.productMarketing}
             Please keep the tweet under 280 characters.
         `;
+
+        if (variety) {
+            const angles = [
+                "Focus on a specific feature.",
+                "Ask a question to the audience.",
+                "Share a quick tip related to the problem solved.",
+                "Use a motivational tone.",
+                "Be humorous and witty."
+            ];
+            const randomAngle = angles[Math.floor(Math.random() * angles.length)];
+            prompt += `\nMake this tweet unique by taking this angle: ${randomAngle}`;
+        }
 
         const result = await model.generateContent(prompt);
         return result.response.text();
@@ -298,20 +403,9 @@ const generateAndPostTweet = async (data, userId) => {
     }
 };
 
-// Schedule tweets based on the number of tweets per day
+// Kept this for compatibility if needed, but the /api/cron/run is the main driver now
 const scheduleTweet = (data, userId) => {
-    if (!data || !data.tweetCount) return;
-
-    const tweetsPerDay = parseInt(data.tweetCount, 10);
-    const intervalInHours = Math.floor(24 / tweetsPerDay);
-
-    console.log(`Scheduling ${tweetsPerDay} tweets per day for User ID: ${userId}`);
-
-    // Note: detailed cron storage is better for production, this is in-memory per server restart
-    cron.schedule(`0 */${intervalInHours} * * *`, () => {
-        console.log("Generating and posting a scheduled tweet...");
-        generateAndPostTweet(data, userId);
-    });
+    // Legacy in-memory scheduler - deprecated in favor of DB persistence
 };
 
 const PORT = process.env.PORT || 5000;

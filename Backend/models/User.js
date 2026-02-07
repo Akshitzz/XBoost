@@ -8,6 +8,12 @@ const UserSchema = new mongoose.Schema({
     twitterRefreshToken: { type: String },
     twitterId: { type: String },
     twitterUsername: { type: String },
+    tweetSchedule: {
+        enabled: { type: Boolean, default: false },
+        promptData: { type: Object },
+        tweetsPerDay: { type: Number, default: 0 },
+        lastPosted: { type: Date }
+    }
 }, { timestamps: true });
 
 export default mongoose.model("User", UserSchema);
