@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { AuroraBackground } from "@/components/ui/aurora-background";
-import { ShineBorder } from "@/components/ui/shine-border";
+import ShineBorder from "@/components/ui/shine-border";
 import { Button } from "@/components/ui/button";
 import { Loader2, Twitter, BarChart3, History, ExternalLink, RefreshCw } from "lucide-react";
 import Link from "next/link";

@@ -49,7 +49,7 @@ export const Header = () => {
 
             {isLoggedIn ? (
               <>
-                <Link href="/getstarted">
+                <Link href="/dashboard">
                   <Button className="bg-blue-500 hover:bg-blue-600 text-white rounded-3xl p-5">Dashboard</Button>
                 </Link>
                 <Button variant="outline" className="ml-4 p-5 rounded-3xl" onClick={handleLogout}>Log Out</Button>
@@ -102,7 +102,7 @@ export const Header = () => {
 
             {isLoggedIn ? (
               <>
-                <Link href="/getstarted">
+                <Link href="/dashboard">
                   <Button className="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-3xl p-5">Dashboard</Button>
                 </Link>
                 <Button variant="outline" className="w-full p-5 rounded-3xl" onClick={handleLogout}>Log Out</Button>
