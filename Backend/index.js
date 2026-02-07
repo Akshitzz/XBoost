@@ -16,10 +16,19 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+
+// Health Check
+app.get("/health", (req, res) => {
+    res.status(200).json({ status: "ok", message: "Server is running" });
+});
+
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI || "mongodb://localhost:27017/xboost")
     .then(() => console.log("MongoDB connected"))
-    .catch(err => console.error("MongoDB connection error:", err));
+    .catch(err => {
+        console.error("MongoDB connection error:", err);
+        process.exit(1); // Exit process with failure
+    });
 
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -108,8 +117,11 @@ app.post("/api/auth/login", async (req, res) => {
 // Generate Twitter Auth Link
 app.get("/api/auth/twitter", authMiddleware, async (req, res) => {
     try {
+        const redirectUri = `${process.env.SERVER_URL}/api/auth/twitter/callback`;
+        console.log("Generating OAuth Link with Redirect URI:", redirectUri);
+
         const { url, codeVerifier, state } = oauthClient.generateOAuth2AuthLink(
-            `${process.env.SERVER_URL}/api/auth/twitter/callback`,
+            redirectUri,
             { scope: ["tweet.read", "tweet.write", "users.read", "offline.access"] }
         );
 
@@ -174,7 +186,7 @@ app.get("/api/user/status", authMiddleware, async (req, res) => {
 
 app.post("/api/generate-tweet", authMiddleware, async (req, res) => {
     try {
-        tweetData = req.body;
+        const tweetData = req.body;
         const user = await User.findById(req.user.id);
 
         if (!user || !user.twitterAccessToken) {
