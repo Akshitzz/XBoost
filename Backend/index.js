@@ -142,7 +142,7 @@ app.get("/api/auth/twitter/callback", async (req, res) => {
     const session = dbCache.get(state);
 
     if (!state || !session || !code) {
-        return res.status(400).send("Invalid state or code");
+        return res.status(400).send("Invalid state or code. Please try connecting again.");
     }
 
     const { codeVerifier, userId } = session;
@@ -200,6 +200,9 @@ app.post("/api/generate-tweet", authMiddleware, async (req, res) => {
         if (!generatedTweet) {
             return res.status(500).json({ error: "Failed to generate tweet" });
         }
+
+        // Post the tweet immediately
+        await postTweet(generatedTweet, user._id);
 
         // Send the generated tweet back to the frontend
         res.json({
@@ -282,31 +285,80 @@ const engageWithCommunity = async (user) => {
         if (!productName) return false;
 
         // Note: Twitter API v2 Free Tier has very limited Search capabilities. 
-        // We attempt to search for keywords. If 403 (Forbidden), we catch it.
-        const query = `#${productName.replace(/\s/g, '')} OR ${productMarketing ? productMarketing.split(' ')[0] : 'tech'}`;
+        // We attempt to search for keywords.
+        const query = `#${productName.replace(/\s/g, '')} OR ${productMarketing ? productMarketing.split(' ')[0] : 'tech'} -is:retweet`;
 
-        console.log(`Attempting to search tweets for engagement: ${query}`);
+        console.log(`[Autonomous] Searching tweets to engage: ${query}`);
 
         // Search for recent tweets (might fail on Free Tier)
         const searchResult = await client.v2.search(query, { max_results: 10 });
 
         if (searchResult.data && searchResult.data.data.length > 0) {
-            // Find a tweet to like (that isn't our own)
+            // Filter out own tweets
             const tweets = searchResult.data.data.filter(t => t.author_id !== user.twitterId);
 
             if (tweets.length > 0) {
                 const randomTweet = tweets[Math.floor(Math.random() * tweets.length)];
 
-                await client.v2.like(user.twitterId, randomTweet.id);
-                console.log(`Liked tweet ${randomTweet.id} from autonomous agent`);
-                return true;
+                // DECISION: Like or Reply?
+                const actionRoll = Math.random();
+
+                // 1. Like (High Probability: 0.0 to 0.7 -> 70% of engagements)
+                if (actionRoll < 0.7) {
+                    await client.v2.like(user.twitterId, randomTweet.id);
+                    console.log(`[Autonomous] Liked tweet ${randomTweet.id}`);
+                    return true;
+                }
+                // 2. Reply (Lower Probability: 0.7 to 1.0 -> 30% of engagements)
+                else {
+                    console.log(`[Autonomous] Attempting to reply to tweet ${randomTweet.id}...`);
+                    const replyText = await generateReply(randomTweet.text, user.tweetSchedule.promptData);
+
+                    if (replyText) {
+                        await client.v2.reply(replyText, randomTweet.id);
+                        console.log(`[Autonomous] Replied to tweet ${randomTweet.id}: "${replyText}"`);
+
+                        // Save reply to DB as well for history
+                        await Tweet.create({
+                            userId: user._id,
+                            content: `[REPLY] ${replyText}`,
+                            tweetId: "reply-" + randomTweet.id, // Placeholder ID or fetch real one if needed
+                            postedAt: new Date()
+                        });
+                        return true;
+                    }
+                }
             }
         }
     } catch (error) {
         // Suppress errors for engagement as it's likely due to tier limits
-        console.log(`Engagement skipped/failed (likely API limits): ${error.message}`);
+        console.log(`[Autonomous] Engagement skipped/failed: ${error.message}`);
     }
     return false;
+};
+
+const generateReply = async (tweetText, productContext) => {
+    try {
+        const prompt = `
+            You are a helpful social media manager for the product "${productContext.productName}".
+            
+            Context:
+            - Product: ${productContext.productName}
+            - Solves: ${productContext.productProblem}
+            
+            The user posted this tweet: "${tweetText}"
+            
+            Write a helpful, friendly, and non-salesy reply (under 200 chars). 
+            Do NOT verify/ask questions. Just be supportive or offer a quick relevant insight.
+            If the tweet is negative or unrelated, return nothing.
+        `;
+
+        const result = await model.generateContent(prompt);
+        return result.response.text();
+    } catch (error) {
+        console.error("Error generating reply:", error);
+        return null;
+    }
 };
 
 // Function to generate tweet
@@ -416,9 +468,15 @@ app.get("/api/dashboard", authMiddleware, async (req, res) => {
 });
 
 const postTweet = async (tweetText, userId) => {
+    console.log(`[DEBUG] postTweet called for UserID: ${userId}`);
     try {
         const user = await User.findById(userId);
-        if (!user || !user.twitterAccessToken) return;
+        if (!user || !user.twitterAccessToken) {
+            console.error("[DEBUG] User not found or no access token");
+            return;
+        }
+
+        console.log("[DEBUG] User found. Initializing Twitter Client...");
 
         // Use the refresh logic to get a valid client
         const client = new TwitterApi({
@@ -426,16 +484,20 @@ const postTweet = async (tweetText, userId) => {
             clientSecret: process.env.TWITTER_CLIENT_SECRET,
         });
 
+        console.log("[DEBUG] Refreshing Token...");
         // Simple refresh flow for robustness
         const { client: userClient, accessToken, refreshToken } = await client.refreshOAuth2Token(user.twitterRefreshToken);
+        console.log("[DEBUG] Token Refreshed Successfully.");
 
         // Update tokens
         user.twitterAccessToken = accessToken;
         user.twitterRefreshToken = refreshToken;
         await user.save();
+        console.log("[DEBUG] New tokens saved to DB.");
 
+        console.log("[DEBUG] Attempting to post tweet...");
         const response = await userClient.v2.tweet(tweetText);
-        console.log("Tweet posted successfully for user:", user.username, "ID:", response.data.id);
+        console.log("[DEBUG] Tweet posted successfully! Response ID:", response.data.id);
 
         // SAVE TWEET TO DB
         await Tweet.create({
@@ -444,10 +506,13 @@ const postTweet = async (tweetText, userId) => {
             tweetId: response.data.id,
             postedAt: new Date()
         });
+        console.log("[DEBUG] Tweet saved to DB history.");
 
         return response.data.id;
     } catch (error) {
-        console.error("Error posting tweet:", error);
+        console.error("[DEBUG] Error in postTweet:", error);
+        // Log detailed error structure if available
+        if (error.data) console.error("[DEBUG] API Error Data:", JSON.stringify(error.data, null, 2));
     }
 };
 
