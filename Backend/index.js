@@ -8,6 +8,7 @@ import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "./models/User.js";
+import Tweet from "./models/Tweet.js";
 import authMiddleware from "./middleware/auth.js";
 
 dotenv.config();
@@ -369,6 +370,51 @@ const getUserClient = async (user) => {
     return new TwitterApi(user.twitterAccessToken);
 };
 
+// Dashboard Data Endpoint
+app.get("/api/dashboard", authMiddleware, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        // Fetch local XBoost stats
+        const totalTweetsGenerated = await Tweet.countDocuments({ userId: user._id });
+        const recentTweets = await Tweet.find({ userId: user._id }).sort({ postedAt: -1 }).limit(10);
+
+        let twitterStats = {};
+
+        // Fetch live Twitter stats if connected
+        if (user.twitterAccessToken) {
+            try {
+                const client = await getUserClient(user);
+                // Fetch user logic with metrics
+                const me = await client.v2.me({ "user.fields": ["public_metrics", "profile_image_url"] });
+                twitterStats = {
+                    followers: me.data.public_metrics?.followers_count || 0,
+                    following: me.data.public_metrics?.following_count || 0,
+                    totalTweets: me.data.public_metrics?.tweet_count || 0,
+                    profileImage: me.data.profile_image_url
+                };
+            } catch (err) {
+                console.error("Error fetching Twitter stats:", err);
+            }
+        }
+
+        res.json({
+            user: { username: user.username, email: user.email },
+            stats: {
+                totalGenerated: totalTweetsGenerated,
+                ...twitterStats
+            },
+            recentTweets,
+            schedule: user.tweetSchedule // Send schedule info as well
+        });
+
+    } catch (error) {
+        console.error("Dashboard Error:", error);
+        res.status(500).json({ error: "Server error" });
+    }
+});
+
 const postTweet = async (tweetText, userId) => {
     try {
         const user = await User.findById(userId);
@@ -390,6 +436,15 @@ const postTweet = async (tweetText, userId) => {
 
         const response = await userClient.v2.tweet(tweetText);
         console.log("Tweet posted successfully for user:", user.username, "ID:", response.data.id);
+
+        // SAVE TWEET TO DB
+        await Tweet.create({
+            userId: user._id,
+            content: tweetText,
+            tweetId: response.data.id,
+            postedAt: new Date()
+        });
+
         return response.data.id;
     } catch (error) {
         console.error("Error posting tweet:", error);
