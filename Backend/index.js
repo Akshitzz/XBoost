@@ -1,5 +1,5 @@
+import dotenv from "dotenv";
 import express from "express";
-import { config } from "dotenv";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { TwitterApi } from "twitter-api-v2";
 import cron from "node-cron";
@@ -10,7 +10,7 @@ import jwt from "jsonwebtoken";
 import User from "./models/User.js";
 import authMiddleware from "./middleware/auth.js";
 
-config();
+dotenv.config();
 
 const app = express();
 app.use(express.json());

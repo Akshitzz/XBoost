@@ -13,6 +13,7 @@ const XLogo = () => (
 
 export const Header = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -27,14 +28,20 @@ export const Header = () => {
     router.push("/");
   };
 
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
   return (
-    <header className="fixed top-4 left-4 right-4  backdrop-blur-md bg-background-light/75  text-light   rounded-3xl border  z-50">
-      <div className="container mx-auto ">
+    <header className="fixed top-4 left-4 right-4 backdrop-blur-md bg-background-light/75 text-light rounded-3xl border z-50">
+      <div className="container mx-auto pl-4">
         <nav className="flex justify-between items-center py-4">
           <div className="flex items-center space-x-2">
             <XLogo />
             <span className="text-2xl font-bold">XBoost</span>
           </div>
+
+          {/* Desktop Menu */}
           <div className="hidden md:flex space-x-6 items-center">
             <Link href="#features" className="text-gray-600 hover:text-blue-500 transition-colors">Features</Link>
             <Link href="#pricing" className="text-gray-600 hover:text-blue-500 transition-colors">Pricing</Link>
@@ -58,12 +65,60 @@ export const Header = () => {
               </>
             )}
           </div>
-          <Button variant="ghost" className="md:hidden">
+
+          {/* Hamburger Menu Button */}
+          <Button
+            variant="ghost"
+            className="md:hidden"
+            onClick={toggleMobileMenu}
+          >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
             </svg>
           </Button>
         </nav>
+
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="flex flex-col space-y-4 mt-4 p-4 bg-white rounded-lg shadow-lg md:hidden">
+            <Link
+              href="#features"
+              className="text-gray-600 hover:text-blue-500 transition-colors"
+            >
+              Features
+            </Link>
+            <Link
+              href="#pricing"
+              className="text-gray-600 hover:text-blue-500 transition-colors"
+            >
+              Pricing
+            </Link>
+            <Link
+              href="#faq"
+              className="text-gray-600 hover:text-blue-500 transition-colors"
+            >
+              FAQ
+            </Link>
+
+            {isLoggedIn ? (
+              <>
+                <Link href="/getstarted">
+                  <Button className="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-3xl p-5">Dashboard</Button>
+                </Link>
+                <Button variant="outline" className="w-full p-5 rounded-3xl" onClick={handleLogout}>Log Out</Button>
+              </>
+            ) : (
+              <>
+                <Link href="/auth">
+                  <Button variant="outline" className="w-full p-5 rounded-3xl">Log In</Button>
+                </Link>
+                <Link href="/auth">
+                  <Button className="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-3xl p-5">Sign Up</Button>
+                </Link>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </header>
   )
